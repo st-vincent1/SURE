@@ -53,6 +53,14 @@ class HornClause:
     def __repr__(self):
         return str(self.weight) + " " + (repr(self.antecedents) + " => " + repr(self.csq))
 
+class Rule:
+    def __init__(self, no, ante, conse):
+        self.no = no
+        self.ante = ante # List of args, antecedents
+        self.conse = conse # Term, consequent
+    def __repr__(self):
+        return "Rule (" + str(self.no) + "): " + repr(self.ante) + " => " + repr(self.conse)
+
 class customForm:
     def __init__(self, weight, ant, consequents):
         self.weight = weight

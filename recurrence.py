@@ -1,13 +1,36 @@
 import logic as lo
+import aodag as dag
 import itertools
 
 #
 #
-#
-# def backchain:
-#
-#
-#
+"""
+satisfied if all consequents in rule are among nodes
+"""
+def satisfied(rule, nodes):
+    nodesArgs = [node.arg for node in nodes]
+    sat = True
+    for n in rule.conse:
+        if n not in nodesArgs:
+            sat = False
+    return sat
+
+def backchain(rollingNodes, rule):
+    usedNodes = []
+    bP = []
+    if satisfied(rule, rollingNodes):
+        usedNodes += [node for node in rollingNodes if node.arg in rule.conse]
+        bP += rule.ante
+    return (bP, usedNodes)
+
+def indexUpdate(index, rollingNodes):
+    for o in rollingNodes:
+        if lo.predPattern(o.arg) not in index.keys():
+            index[lo.predPattern(o.arg)] = o
+        else:
+            index[lo.predPattern(o.arg)].append(o)
+    return index
+
 # def unify:
 #
 #
@@ -20,132 +43,84 @@ def parse(varList):
     args = [varList[i].split(' ') for i in range(len(varList))]
     args = [lo.Form(args[i][0], args[i][1:]) for i in range(len(args))]
     return args
-rules = []
-"""
-Define Tree structure
-the structure has the following features:
-- each literal node is either an observable or a parent of exactly one Axiom
-OR[x][0] -> value of node
-OR[x][1] -> axiom; 0 if observable
-AND[x][0] -> value of node (no of axiom, 0 if unifying, -1 if ref)
-AND[x][1] -> list of children if axiom; list of unified predicates if unifying;
-ref predicate if ref;
 
-BS
-
-I need the following types of nodes:
-- literal node (name, child axiom number)
-- axiom node (number, children)
-- unification node (predicate pattern, child 1, child 2)
-- literal unification node (argument 1, argument 2, child unification)
-- referential node (predicate, child axiom)
-- numbU node (number of unifications, child axiom)
-
-Example graph [taken from PDF] would look like this:
-
-Node(q(x,y), null, True)
-Node(r(x), null, True)
-Axiom(1, [q(x,y)], tV)
-Axiom(2, [q(x,y), r(x)], tV)
-Ref(r(x), [2])
-Ref(q(x,y), [1,2])
-Node(p(y), 1, tV)
-Node(p(x), 2, tV)
-Node(s(z), 2, tV)
-NumbU(null, 1)
-NumbU(null, 2)
-Uni(p, [p(x), p(y)], tV)
-LitUni((x,y), p, tV)
-
-Note: Ref, NumbU in themselves are already TFNodes. Thus only need to account for the rest.
-
-class Node(self, arg, child=null):
-    self.arg = arg # Form(define the literal node)
-    self.child = child
-    self.holds = True if self.child == null else null
-    self.id = self.arg
-
-class Axiom(self, no, child):
-    self.no = no
-    self.child = child
-    self.holds = null
-    self.id = self.no
-class Ref(self, arg, child):
-    self.arg = arg
-    self.child = child
-    self.id = self.arg
-    define a holds function
-    holds(self, obsv) = True if self.arg in obsv else False
-
-class NumbU(self, child):
-    self.value = null
-    self.child = child
-    self.id = self.child
-    setValue(self, value):
-        self.value = value
-
-
-class Uni(self, child):
-    self.symbol = child[0].symbol
-    self.holds = null
-    self.id = self.symbol
-
-class LitUni(self, child):
-    self.arg = (child.child[0].arg, child.child[1].arg)
-    self.child = child
-    self.id = self.arg
-A node is an archetypical structure to which I can then assign T/F value.
-In other words, perhaps the actual graph will be defined in the following way:
-Node(truthValue, node, children)
-children to be extracted from node upon definition.
-
-- each axiom can be the child and parent of many literal nodes
-- each unification node connects to exactly two literal nodes of the same pred pattern
-
-"""
 f = open("test1.txt", "r")
 obsv = f.readline().strip()
-# Add observational nodes to the tree
+obsvNodes = obsv.split(', ')
+obsvNodes = [x.split(' ') for x in obsvNodes]
+# convert obsv to Nodes
+rollingNodes = []
+for i in obsvNodes:
+    rollingNodes.append(dag.Node(lo.Form(i[0], i[1:])))
 KB = []
+index = dict()
+index = indexUpdate(index, rollingNodes)
+
 for line in f:
     implication = line.strip().split('. ')
-    print(implication)
     antecedents = implication[0].split(', ')
     consequents = implication[1].split(', ')
     antecedentsArgs, consequentsArgs = parse(antecedents), parse(consequents)
-    KB.append(lo.HornClause(0, consequentsArgs, antecedentsArgs))
-    print(antecedentsArgs, consequentsArgs)
+    KB.append(lo.Rule(len(KB)+1, antecedentsArgs, consequentsArgs))
+
 # Erase useless rules from KB
-# Create a Refd[v] list of all predicates
-print(KB)
-d = 5
+# KB filter  consequents in rolling nodes
+# KB = [rule if any i in rule.conse in x.arg for x in rollingNodes for rule in KB]
+
+"""
+Assume KB filtered
+"""
+Refd = dict()
+for o in rollingNodes:
+    Refd[o] = True
+
+# # Convert KB to a KB of Axioms
+d = 1
 while(d>0):
     # Backchaining
     for axiom in KB:
         # Axiom is of the form HornClause(args, args)
-        (bP, uP) = backchain(Tree, axiom)
+        # rollingNodes is the list of nodes already explored
+        (bP, usedNodes) = backchain(rollingNodes, axiom) #Parse root?
         if bP:
-            for used in uP:
-                Tree[axiom].append(used)
+            for used in usedNodes:
+#                 #This may not work, check how to index
+                newAxiom = dag.Axiom(axiom.no, used)
+                # newAxiom.child.append(used)
             for backchained in bP:
-                # Do it differently; you know that only one axiom is applied
-                # to each predicate - exploit that
-                Tree[backchained].append(axiom)
-        for a in axiom.antecedents:
-            if !Refd[a]:
-                x = lo.Ref(a, True if a in obsv else False)
-                Tree[x].append(axiom)
+                newBackchained = dag.Node(backchained, newAxiom)
 
-    # Unification
-    # Need to store information about predicates previously added to the KB
-    # Need a way of quickly identifying predicate patterns same to the one here
-    for ...:
-        # Pair is x, y
-        unified = lo.Uni(x.symbol)
-        Tree[unified].append(x)
-        Tree[unified].append(y)
-        equal = lo.Equal(x, y)
-        Tree[equal].append(unified)
-        Tree[x]
 
+        """
+        Don't exactly understand the purpose of this; cant rememberlol
+        """
+        # for a in axiom.conse:
+        #     if a not in Refd.keys():
+        #         x = dag.Ref(a, newAxiom)
+        #         Refd[a] = True
+#     """
+#     Unification
+#     Need to store information about predicates previously added to the KB
+#     Need a way of quickly identifying predicate patterns same to the one here
+#     So:
+#     bP is backchained predicates
+#     we know that when we do unification all we need to do is compare those from bP
+#     against those that were already come up with earlier.
+#     So perhaps a dictionary for predPatterns that is updated at the end of each loop
+#     would be useful for this. (bubble sort)
+#     then for all predicates in bP we unify them with all their precedents in the dict.
+#
+#     """
+    for x in bP:
+        print(x)
+        print(index)
+        # For each backchained literal, try to unify it with whatever you can
+        xPttn = lo.predPattern(x)
+        if xPttn in index.keys():
+            for y in index[xPttn]:
+                # Pair is x, y, they're Nodes
+                unified = dag.Uni((x, y))
+                equal = dag.LitUni((x, y))
+                index[xPttn].append(y)
+#
     d -= 1
