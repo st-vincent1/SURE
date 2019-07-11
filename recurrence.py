@@ -31,13 +31,6 @@ def indexUpdate(index, rollingNodes):
             index[lo.predPattern(o.arg)].append(o)
     return index
 
-# def unify:
-#
-#
-#
-# def listHypotheses:
-#
-
 
 def parse(varList):
     args = [varList[i].split(' ') for i in range(len(varList))]
@@ -83,21 +76,23 @@ while(d>0):
         # rollingNodes is the list of nodes already explored
         (bP, usedNodes) = backchain(rollingNodes, axiom) #Parse root?
         if bP:
-            for used in usedNodes:
-#                 #This may not work, check how to index
-                newAxiom = dag.Axiom(axiom.no, used)
-                # newAxiom.child.append(used)
+            #Something was bchained -> create axiom node
+            #Connect axiom nodes to all used nodes; how to identify those in graph?
+            newAxiom = dag.Vertex(dag.Node(axiom.no))
+            dag.addChildren(G, newAxiom, [G[used] for used in usedNodes])
+
             for backchained in bP:
-                newBackchained = dag.Node(backchained, newAxiom)
-
+                back = dag.Vertex(dag.Node(backchained))
+                dag.addChildren(G, back, newAxiom)
 
         """
-        Don't exactly understand the purpose of this; cant rememberlol
+        Putting Refs in the graph
         """
-        # for a in axiom.conse:
-        #     if a not in Refd.keys():
-        #         x = dag.Ref(a, newAxiom)
-        #         Refd[a] = True
+        for a in axiom.conse:
+            if a not in Refd.keys():
+                ref = dag.createVertex(dag.Node(a, 'ref'))
+                Refd[a] = True
+                dag.addChildren(G, ref, axiom)
 #     """
 #     Unification
 #     Need to store information about predicates previously added to the KB
@@ -119,8 +114,10 @@ while(d>0):
         if xPttn in index.keys():
             for y in index[xPttn]:
                 # Pair is x, y, they're Nodes
-                unified = dag.Uni((x, y))
-                equal = dag.LitUni((x, y))
+                unified = dag.Vertex(dag.Node((x, y), 'uni'))
+                literals = dag.Vertex(dag.Node((x, y), 'eq'))
+                dag.addChildren(G, unified, [x,y])
+                dag.addChildren(G, literals, unified)
                 index[xPttn].append(y)
 #
     d -= 1
