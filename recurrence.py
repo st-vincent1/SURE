@@ -73,6 +73,8 @@ Assume KB filtered
 """
 # Refd[o] = True <=> o is an observable; do I need this tho
 Refd = dict()
+Axd = dict()
+Numd = dict()
 uniPair = dict()
 uniPredicate = dict()
 for o in rollingNodes:
@@ -84,7 +86,10 @@ while(d>0):
     seriesNodes = []
     # Backchaining
     for axiom in KB:
-        newAxiom = dag.Node(axiom.no, 'ax')
+        if axiom.no not in Axd.keys():
+            Axd[axiom.no] = dag.Node(axiom.no, 'ax')
+            Numd[axiom.no] = dag.Node(axiom.no, 'num')
+            dag.addChildren(G, Numd[axiom.no], [Axd[axiom.no]])
         # print(axiom)
         # Axiom is of the form HornClause(args, args)
         # rollingNodes is the list of Nodes already explored
@@ -93,13 +98,13 @@ while(d>0):
         (bP, usedNodes) = backchain(rollingNodes, axiom) #Parse root?
         if bP:
             #Something was bchained -> create axiom node
-            dag.addChildren(G, newAxiom, [usedNodes])
+            dag.addChildren(G, Axd[axiom.no], [usedNodes])
 
             for backchained in bP:
                 back = dag.Node(backchained, 'lit')
                 pp = lo.predPattern(backchained)
                 index[pp] = [back] if pp not in index.keys() else index[pp] + [back]
-                dag.addChildren(G, back, [newAxiom])
+                dag.addChildren(G, back, [Axd[axiom.no]])
                 seriesNodes.append(back)
         """
         Putting Refs in the graph
@@ -107,13 +112,18 @@ while(d>0):
         for a in axiom.conse:
             if a not in Refd.keys():
                 Refd[a] = dag.Node(a, 'ref')
-            dag.addChildren(G, Refd[a], [newAxiom])
+            dag.addChildren(G, Refd[a], [Axd[axiom.no]])
     rollingNodes += seriesNodes
     """
     Unification
-    Don't have num nodes yet
-    Unification duplicates. why
-        Problem: if two nodes added in one go then it fucks up bc it goes through both
+
+    For a pair of nodes x, y
+    1. Are nodes unifiable?
+        NO -> go on
+    YES.
+    Identify all unifiable pairs of variables in nodes. [might use lo.unify]
+    For all pairs
+        create those connections
 
 
     Keep track of which variables have been unified - uniPair
@@ -123,29 +133,36 @@ while(d>0):
     1. Check if this pair has been unified before
         NO:
             add pair node.
-            uniPair(sorted(pair)) = node (sorted pair)
+            uniPair(pair(pair)) = node (pair pair)
         YES:
             if their child is already the same as symbol, quit loop
         check uniPredicate(current literal)
             EMPTY? create node(current literal), make child of current pair node
             A NODE? create a connection between pair and that node
-
+    Note:
+    this is so far implemented on 1 literal predicates only.
+    TODO:
+    Make it work for multiple literal predicates
     """
     for x in seriesNodes:
         # For each backchained literal, try to unify it with whatever you can
         xPttn = lo.predPattern(x.arg) # can only unify literals of same pattern
         if xPttn in index.keys(): # if not in index then there's nothing to unify
             for y in index[xPttn]: # try to unify against every literal in index
-                sorted = lo.sort(x.arg,y.arg)
-                if not sorted:
+                # Now I'm at the pair. want to know if these are unifiable [also no if theta empty]
+                theta = lo.unifyTerms(x.arg,y.arg)
+                print(theta)
+                if not theta:
                     break # to avoid (x=y,y=x)
-                if sorted not in uniPair.keys(): # if no x=y node in graph
-                    uniPair[sorted] = dag.Node(sorted, 'eq') #create node
-                if xPttn not in uniPredicate.keys():
-                    uniPredicate[xPttn] = dag.Node(sorted, 'uni')
-                    dag.addChildren(G, uniPredicate[xPttn], [x,y])
-                if uniPair[sorted] not in G.keys() or G[uniPair[sorted]] != uniPredicate[xPttn]: # if the child of unif
-                    dag.addChildren(G, uniPair[sorted], [uniPredicate[xPttn]])
+                for pair in theta.items():
+                    if pair not in uniPair.keys(): # if no x=y node in graph
+                        uniPair[pair] = dag.Node(pair, 'eq') #create node
+                    if xPttn not in uniPredicate.keys():
+                        uniPredicate[xPttn] = dag.Node(xPttn, 'uni')
+                        dag.addChildren(G, uniPredicate[xPttn], [x,y])
+                        dag.addChildren(G, uniPredicate[xPttn], [Numd[G[x][0].arg], Numd[G[y][0].arg]])
+                    if uniPair[pair] not in G.keys() or G[uniPair[pair]] != uniPredicate[xPttn]: # if the child of unif
+                        dag.addChildren(G, uniPair[pair], [uniPredicate[xPttn]])
     d -= 1
 for x in G.keys():
     print(str(x) + " --> " + str(G[x]))
