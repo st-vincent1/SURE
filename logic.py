@@ -205,3 +205,8 @@ def predPattern(predicate):
         return Form(predicate.symbol, ['?' for i in range(predicate.arity)])
     print("EXPECTED: Form; RECEIVED: " + predicate)
     return False
+
+def sort(x1, x2):
+    if x1 == x2:
+        return False
+    return (x1, x2) if x1.args <= x2.args else (x2, x1)

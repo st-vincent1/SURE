@@ -73,6 +73,8 @@ Assume KB filtered
 """
 # Refd[o] = True <=> o is an observable; do I need this tho
 Refd = dict()
+uniPair = dict()
+uniPredicate = dict()
 for o in rollingNodes:
     Refd[o] = False
 
@@ -110,31 +112,40 @@ while(d>0):
     """
     Unification
     Don't have num nodes yet
-    
+    Unification duplicates. why
+        Problem: if two nodes added in one go then it fucks up bc it goes through both
+
+
+    Keep track of which variables have been unified - uniPair
+    Keep track of whether there exists a U node for a given symbol - uniPredicate
+    Looking for unifications among nodes... [match sth from seriesNodes to sth from rollingNodes]
+    If two candidates found:
+    1. Check if this pair has been unified before
+        NO:
+            add pair node.
+            uniPair(sorted(pair)) = node (sorted pair)
+        YES:
+            if their child is already the same as symbol, quit loop
+        check uniPredicate(current literal)
+            EMPTY? create node(current literal), make child of current pair node
+            A NODE? create a connection between pair and that node
 
     """
-    print(G)
-    # pp.pprint(G)
-    print("Begin unification")
-    print(seriesNodes)
     for x in seriesNodes:
-        # x is a node now
-        print(x)
-        print("index:")
-        print(index)
         # For each backchained literal, try to unify it with whatever you can
-        xPttn = lo.predPattern(x.arg)
-        # print(xPttn)
-        if xPttn in index.keys():
-            for y in index[xPttn]:
-                if y != x:
-                    print(x,y)
-                # Pair is x, y, they're Nodes
-                    unified = dag.Node((x.arg, y.arg), 'uni')
-                    literals = dag.Node((x.arg, y.arg), 'eq')
-                    dag.addChildren(G, unified, [x,y])
-                    dag.addChildren(G, literals, [unified])
-                    # index[xPttn].append(y)
+        xPttn = lo.predPattern(x.arg) # can only unify literals of same pattern
+        if xPttn in index.keys(): # if not in index then there's nothing to unify
+            for y in index[xPttn]: # try to unify against every literal in index
+                sorted = lo.sort(x.arg,y.arg)
+                if not sorted:
+                    break # to avoid (x=y,y=x)
+                if sorted not in uniPair.keys(): # if no x=y node in graph
+                    uniPair[sorted] = dag.Node(sorted, 'eq') #create node
+                if xPttn not in uniPredicate.keys():
+                    uniPredicate[xPttn] = dag.Node(sorted, 'uni')
+                    dag.addChildren(G, uniPredicate[xPttn], [x,y])
+                if uniPair[sorted] not in G.keys() or G[uniPair[sorted]] != uniPredicate[xPttn]: # if the child of unif
+                    dag.addChildren(G, uniPair[sorted], [uniPredicate[xPttn]])
     d -= 1
 for x in G.keys():
     print(str(x) + " --> " + str(G[x]))
