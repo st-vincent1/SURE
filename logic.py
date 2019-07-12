@@ -171,7 +171,7 @@ def unify(a,b,theta):
     if(a == b):
         return theta
     if (tuffvar(a) and tuffvar(b)):
-        if a>b:
+        if a<=b:
             theta[a] = b
         else:
             theta[b] = a

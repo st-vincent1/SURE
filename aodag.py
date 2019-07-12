@@ -23,29 +23,33 @@ finish this today tho
 
 """
 class Node:
-    def __init__(self, arg, family):
+    def __init__(self, arg, family, obsv=False):
         self.family = family
         self.arg = arg
         self.andor = 'AND' if self.family in ['ref','uni','eq','ax','num'] else 'OR'
         self.num = 0 if self.family == 'num' else None
-        self.symbol = arg[0].symbol if self.family == 'uni' else None
+        self.symbol = arg.symbol if self.family == 'uni' else None
         self.eq = ()
         self.eqArgs = 0 #Make this take arguments of lituni
         self.truth = None
+        self.obsv = obsv
     def __repr__(self):
-        return "[" + self.family + "] " + repr(self.arg)
+        return "<" + self.family + "> " + repr(self.arg)
     def holds(self, obsv):
         return True if self.arg in obsv and self.family == 'ref' else False
 
 def initGraph(nodes):
     G = dict()
     for node in nodes:
+        #Observational nodes are children of axiom 0
         G[node] = []
     return G
 def addChildren(graph, node, children):
     if node not in graph.keys():
         graph[node] = []
-    graph[node] += children
+    for c in children:
+        if c not in graph[node]:
+            graph[node].append(c)
 
 # class Literal:
 #     def __init__(self, arg):

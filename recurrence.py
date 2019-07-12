@@ -3,10 +3,8 @@ import aodag as dag
 import itertools
 import pprint as pp
 
-#
-#
 """
-satisfied if all consequents in rule are among nodes
+Satisfied if all consequents in rule are among nodes
 """
 def satisfied(rule, nodes):
     nodesArgs = [node.arg for node in nodes]
@@ -17,21 +15,23 @@ def satisfied(rule, nodes):
     return sat
 
 def backchain(rollingNodes, rule):
+    print(rule)
+    print(rollingNodes)
     usedNodes = []
     bP = []
     if satisfied(rule, rollingNodes):
         usedNodes += [node for node in rollingNodes if node.arg in rule.conse]
         bP += rule.ante
+    print(usedNodes)
     return (bP, usedNodes)
 
 def indexUpdate(index, rollingNodes):
     for o in rollingNodes:
         if lo.predPattern(o.arg) not in index.keys():
-            index[lo.predPattern(o.arg)] = o
+            index[lo.predPattern(o.arg)] = [o]
         else:
             index[lo.predPattern(o.arg)].append(o)
     return index
-
 
 def parse(varList):
     args = [varList[i].split(' ') for i in range(len(varList))]
@@ -42,14 +42,14 @@ def parse(varList):
 
 
 ################### MAIN
-f = open("test1.txt", "r")
+f = open("test2.txt", "r")
 obsv = f.readline().strip()
 obsvNodes = obsv.split(', ')
 obsvNodes = [x.split(' ') for x in obsvNodes]
 # convert obsv to Nodes
 rollingNodes = []
 for i in obsvNodes:
-    rollingNodes.append(dag.Node(lo.Form(i[0], i[1:]), 'lit'))
+    rollingNodes.append(dag.Node(lo.Form(i[0], i[1:]), 'lit', True))
 # print(rollingNodes)
 KB = []
 G = dag.initGraph(rollingNodes)
@@ -72,16 +72,15 @@ for line in f:
 Assume KB filtered
 """
 # Refd[o] = True <=> o is an observable; do I need this tho
+Litd = dict()
 Refd = dict()
 Axd = dict()
 Numd = dict()
 uniPair = dict()
 uniPredicate = dict()
-for o in rollingNodes:
-    Refd[o] = False
 
 # # Convert KB to a KB of Axioms
-d = 1
+d = 2
 while(d>0):
     seriesNodes = []
     # Backchaining
@@ -99,19 +98,20 @@ while(d>0):
         if bP:
             #Something was bchained -> create axiom node
             dag.addChildren(G, Axd[axiom.no], [usedNodes])
-
-            for backchained in bP:
-                back = dag.Node(backchained, 'lit')
-                pp = lo.predPattern(backchained)
-                index[pp] = [back] if pp not in index.keys() else index[pp] + [back]
-                dag.addChildren(G, back, [Axd[axiom.no]])
-                seriesNodes.append(back)
+            # G[Axd[axiom.no]] = set(G[Axd[axiom.no]])
+            for b in bP:
+                if b not in Litd.keys():
+                    Litd[b] = dag.Node(b, 'lit')
+                pp = lo.predPattern(b)
+                index[pp] = [Litd[b]] if pp not in index.keys() else index[pp] + [Litd[b]]
+                dag.addChildren(G, Litd[b], [Axd[axiom.no]])
+                seriesNodes.append(Litd[b])
         """
         Putting Refs in the graph
         """
         for a in axiom.conse:
             if a not in Refd.keys():
-                Refd[a] = dag.Node(a, 'ref')
+                Refd[a] = dag.Node(a, 'ref', True)
             dag.addChildren(G, Refd[a], [Axd[axiom.no]])
     rollingNodes += seriesNodes
     """
@@ -151,7 +151,6 @@ while(d>0):
             for y in index[xPttn]: # try to unify against every literal in index
                 # Now I'm at the pair. want to know if these are unifiable [also no if theta empty]
                 theta = lo.unifyTerms(x.arg,y.arg)
-                print(theta)
                 if not theta:
                     break # to avoid (x=y,y=x)
                 for pair in theta.items():
@@ -160,9 +159,13 @@ while(d>0):
                     if xPttn not in uniPredicate.keys():
                         uniPredicate[xPttn] = dag.Node(xPttn, 'uni')
                         dag.addChildren(G, uniPredicate[xPttn], [x,y])
-                        dag.addChildren(G, uniPredicate[xPttn], [Numd[G[x][0].arg], Numd[G[y][0].arg]])
+                        if not x.obsv:
+                            dag.addChildren(G, uniPredicate[xPttn], [Numd[G[x][0].arg]])
+                        if not y.obsv:
+                            dag.addChildren(G, uniPredicate[xPttn], [Numd[G[y][0].arg]])
                     if uniPair[pair] not in G.keys() or G[uniPair[pair]] != uniPredicate[xPttn]: # if the child of unif
                         dag.addChildren(G, uniPair[pair], [uniPredicate[xPttn]])
     d -= 1
-for x in G.keys():
-    print(str(x) + " --> " + str(G[x]))
+    print("Graph:" + str(d))
+    for x in G.keys():
+        print(str(x) + " --> " + str(G[x]))

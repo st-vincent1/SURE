@@ -1,0 +1,4 @@
+q x y, r x
+p a y. q x y
+p b x, s z. q x y, r x
+q a b. p a y, s z
