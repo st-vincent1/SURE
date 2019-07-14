@@ -50,7 +50,25 @@ def addChildren(graph, node, children):
     for c in children:
         if c not in graph[node]:
             graph[node].append(c)
+"""
+def traversal(graph):
+    Sort nodes topologically
+    For all nodes in beginTable:
+        For all models:
+            Analyse node -- returns True, False or True and False
+            if should, Traverse(node=True)
+            if should, Traverse(node=False)
+                remember a traversal path when branching
 
+    When you enter the last node (will be last in topological order),
+    see what paths you have. Select only those where all observables are true,
+    and then create hypotheses [by picking out those literals that have no true parents]
+
+Remember to include number of unifications for the num nodes.
+Now we have hypotheses and models. Can calculate the probability.
+Research conditional probability tables!
+
+"""
 # class Literal:
 #     def __init__(self, arg):
 #         self.arg = arg # Form(define the literal node)
