@@ -50,6 +50,35 @@ def addChildren(graph, node, children):
     for c in children:
         if c not in graph[node]:
             graph[node].append(c)
+
+def dfsDegree(graph, node, degreeTable, vis):
+    for i in graph[node]:
+        degreeTable[i] += 1
+        if not vis[i]:
+            vis[i] = True
+            dfsDegree(graph, i, degreeTable, vis)
+    return degreeTable
+
+def topSort(graph, degreeTable):
+    order = []
+    vis = dict()
+    for i in graph.keys():
+        vis[i] = False
+    for i in degreeTable.keys():
+        if degreeTable[i] == 0 and not vis[i]:
+            vis[i] = True
+            dfsTop(graph, i, order, degreeTable, vis)
+    return order
+
+def dfsTop(graph, node, order, degreeTable, vis):
+    order.append(node)
+    for i in graph[node]:
+        degreeTable[i] -= 1
+        if degreeTable[i] == 0 and not vis[i]:
+            vis[i] = True
+            dfsTop(graph, i, order, degreeTable, vis)
+
+
 """
 def traversal(graph):
     Sort nodes topologically

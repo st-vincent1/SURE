@@ -97,7 +97,8 @@ while(d>0):
         (bP, usedNodes) = backchain(rollingNodes, axiom) #Parse root?
         if bP:
             #Something was bchained -> create axiom node
-            dag.addChildren(G, Axd[axiom.no], [usedNodes])
+
+            dag.addChildren(G, Axd[axiom.no], usedNodes)
             # G[Axd[axiom.no]] = set(G[Axd[axiom.no]])
             for b in bP:
                 if b not in Litd.keys():
@@ -169,3 +170,29 @@ while(d>0):
     print("Graph:" + str(d))
     for x in G.keys():
         print(str(x) + " --> " + str(G[x]))
+#make a loop which goes over nodes and sttarts degree on those unvisited
+
+# Calculate topological order for nodes
+# Degree is a list of topologically sorted nodes
+order = []
+vis = dict()
+degree = dict()
+for i in G.keys():
+    vis[i] = False
+    degree[i] = 0
+for i in G:
+    if not vis[i]:
+        vis[i] = True
+        degree = dag.dfsDegree(G, i, degree, vis)
+print(degree)
+#Topsort
+for i in G.keys():
+    vis[i] = False
+for i in degree.keys():
+    if degree[i] == 0 and not vis[i]:
+        vis[i] = True
+        dag.dfsTop(G, i, order, degree, vis)
+print(order)
+
+#traversal??????
+#make more examples
