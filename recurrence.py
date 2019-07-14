@@ -2,7 +2,7 @@ import logic as lo
 import aodag as dag
 import itertools
 import pprint as pp
-
+import copy
 """
 Satisfied if all consequents in rule are among nodes
 """
@@ -42,15 +42,25 @@ def parse(varList):
 
 
 ################### MAIN
-f = open("test2.txt", "r")
+Litd = dict()
+Refd = dict()
+Axd = dict()
+Numd = dict()
+uniPair = dict()
+uniPredicate = dict()
+f = open("test1.txt", "r")
 obsv = f.readline().strip()
 obsvNodes = obsv.split(', ')
 obsvNodes = [x.split(' ') for x in obsvNodes]
 # convert obsv to Nodes
 rollingNodes = []
 for i in obsvNodes:
-    rollingNodes.append(dag.Node(lo.Form(i[0], i[1:]), 'lit', True))
-# print(rollingNodes)
+    a = lo.Form(i[0], i[1:])
+    aNode = dag.Node(a, 'lit', True)
+    Litd[a] = aNode
+    rollingNodes.append(aNode)
+
+obsvNodes = copy.deepcopy(rollingNodes)
 KB = []
 G = dag.initGraph(rollingNodes)
 # index stores lists of nodes that satisfy a certain predicate pattern
@@ -72,12 +82,7 @@ for line in f:
 Assume KB filtered
 """
 # Refd[o] = True <=> o is an observable; do I need this tho
-Litd = dict()
-Refd = dict()
-Axd = dict()
-Numd = dict()
-uniPair = dict()
-uniPredicate = dict()
+
 
 # # Convert KB to a KB of Axioms
 d = 2
@@ -112,7 +117,7 @@ while(d>0):
         """
         for a in axiom.conse:
             if a not in Refd.keys():
-                Refd[a] = dag.Node(a, 'ref', True)
+                Refd[a] = dag.Node(a, 'ref', False, True if Litd[a] in obsvNodes else False)
             dag.addChildren(G, Refd[a], [Axd[axiom.no]])
     rollingNodes += seriesNodes
     """
@@ -184,7 +189,7 @@ for i in G:
     if not vis[i]:
         vis[i] = True
         degree = dag.dfsDegree(G, i, degree, vis)
-print(degree)
+# print(degree)
 #Topsort
 for i in G.keys():
     vis[i] = False
@@ -192,7 +197,21 @@ for i in degree.keys():
     if degree[i] == 0 and not vis[i]:
         vis[i] = True
         dag.dfsTop(G, i, order, degree, vis)
-print(order)
+# print(order)
 
-#traversal??????
+par = [dict()]
+for i in G.keys():
+    # vis[i] = False
+    par[i] = [0,0]
+combos = [[]]
+for i in order:
+    print(combos)
+    combos = dag.traversal(G, i, combos, par)
+print(par)
+#Combos contains all possible models
+for i in combos:
+    print("@@@@@@@@@@@@@@@@@@@@@@@@ ... NEXT HYPOTHESIS:")
+    for j in i:
+        print(j)
 #make more examples
+print(obsvNodes)

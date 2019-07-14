@@ -23,7 +23,7 @@ finish this today tho
 
 """
 class Node:
-    def __init__(self, arg, family, obsv=False):
+    def __init__(self, arg, family, obsv=False, refObsv=False):
         self.family = family
         self.arg = arg
         self.andor = 'AND' if self.family in ['ref','uni','eq','ax','num'] else 'OR'
@@ -33,10 +33,18 @@ class Node:
         self.eqArgs = 0 #Make this take arguments of lituni
         self.truth = None
         self.obsv = obsv
+        self.refObsv = refObsv
+        self.trueParents = 0
+        self.falseParents = 0
     def __repr__(self):
         return "<" + self.family + "> " + repr(self.arg)
-    def holds(self, obsv):
-        return True if self.arg in obsv and self.family == 'ref' else False
+    def __eq__(self, other):
+        if isinstance(other, Node):
+            return self.arg == other.arg and self.family == other.family
+    def __hash__(self):
+        return hash((self.arg,self.family))
+
+
 
 def initGraph(nodes):
     G = dict()
@@ -52,23 +60,15 @@ def addChildren(graph, node, children):
             graph[node].append(c)
 
 def dfsDegree(graph, node, degreeTable, vis):
+    if node.family == 'ref':
+        print(node)
+        print(node.refObsv)
     for i in graph[node]:
         degreeTable[i] += 1
         if not vis[i]:
             vis[i] = True
             dfsDegree(graph, i, degreeTable, vis)
     return degreeTable
-
-def topSort(graph, degreeTable):
-    order = []
-    vis = dict()
-    for i in graph.keys():
-        vis[i] = False
-    for i in degreeTable.keys():
-        if degreeTable[i] == 0 and not vis[i]:
-            vis[i] = True
-            dfsTop(graph, i, order, degreeTable, vis)
-    return order
 
 def dfsTop(graph, node, order, degreeTable, vis):
     order.append(node)
@@ -78,7 +78,38 @@ def dfsTop(graph, node, order, degreeTable, vis):
             vis[i] = True
             dfsTop(graph, i, order, degreeTable, vis)
 
+def analyseNode(graph, node, par):
+    if node.obsv == True:
+        return (True, False)
+    if node.family == 'num':
+        node.num = par[node][1]
+        return (False, False)
+    if par[node][1] == 0 and par[node][0] == 0:
+        return (True, True)
+    if node.andor == 'AND':
+        if par[node][0] > 0:
+            return (False, True)
+        else:
+            return (True, False)
+    elif node.andor == 'OR':
+        if par[node][1] > 0:
+            return (True, False)
+        else:
+            return (True, True)
+    else:
+        print("Error: undefined node")
+        return (False, False)
 
+def traversal(graph, node, preCombo, par):
+    (truth, falsity) = analyseNode(graph, node, par)
+    newComboT = [combo + [(node, True)] for combo in preCombo]
+    newComboF = [combo + [(node, False)] for combo in preCombo]
+    preCombo = newComboT * truth + newComboF * falsity
+    for j in range(len(preCombo)):
+        for i in graph[node]:
+            i.falseParents += falsity*1
+            i.trueParents += truth*1
+    return preCombo
 """
 def traversal(graph):
     Sort nodes topologically
