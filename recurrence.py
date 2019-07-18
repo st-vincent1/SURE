@@ -14,6 +14,9 @@ def satisfied(rule, nodes):
             sat = False
     return sat
 
+"""
+Pattern matching
+"""
 def backchain(rollingNodes, rule):
     print(rule)
     print(rollingNodes)
@@ -38,9 +41,6 @@ def parse(varList):
     args = [lo.Form(args[i][0], args[i][1:]) for i in range(len(args))]
     return args
 
-
-
-
 ################### MAIN
 Litd = dict()
 Refd = dict()
@@ -48,7 +48,7 @@ Axd = dict()
 Numd = dict()
 uniPair = dict()
 uniPredicate = dict()
-f = open("test5.txt", "r")
+f = open("test1.txt", "r")
 obsv = f.readline().strip()
 obsvNodes = obsv.split(', ')
 obsvNodes = [x.split(' ') for x in obsvNodes]
@@ -75,14 +75,14 @@ for line in f:
     KB.append(lo.Rule(len(KB)+1, antecedentsArgs, consequentsArgs))
 
 # Erase useless rules from KB
-# KB filter  consequents in rolling nodes
+# KB filter consequents in rolling nodes
 # KB = [rule if any i in rule.conse in x.arg for x in rollingNodes for rule in KB]
 
 """
 Assume KB filtered
 """
-# # Convert KB to a KB of Axioms
-d = 2
+# Convert KB to a KB of Axioms
+d = 5
 while(d>0):
     seriesNodes = []
     # Backchaining
@@ -99,9 +99,7 @@ while(d>0):
         (bP, usedNodes) = backchain(rollingNodes, axiom) #Parse root?
         if bP:
             #Something was bchained -> create axiom node
-
             dag.addChildren(G, Axd[axiom.no], usedNodes)
-            # G[Axd[axiom.no]] = set(G[Axd[axiom.no]])
             for b in bP:
                 if b not in Litd.keys():
                     Litd[b] = dag.Node(b, 'lit')
@@ -117,36 +115,7 @@ while(d>0):
                 Refd[a] = dag.Node(a, 'ref', False, True if Litd[a] in obsvNodes else False)
             dag.addChildren(G, Refd[a], [Axd[axiom.no]])
     rollingNodes += seriesNodes
-    """
-    Unification
 
-    For a pair of nodes x, y
-    1. Are nodes unifiable?
-        NO -> go on
-    YES.
-    Identify all unifiable pairs of variables in nodes. [might use lo.unify]
-    For all pairs
-        create those connections
-
-
-    Keep track of which variables have been unified - uniPair
-    Keep track of whether there exists a U node for a given symbol - uniPredicate
-    Looking for unifications among nodes... [match sth from seriesNodes to sth from rollingNodes]
-    If two candidates found:
-    1. Check if this pair has been unified before
-        NO:
-            add pair node.
-            uniPair(pair(pair)) = node (pair pair)
-        YES:
-            if their child is already the same as symbol, quit loop
-        check uniPredicate(current literal)
-            EMPTY? create node(current literal), make child of current pair node
-            A NODE? create a connection between pair and that node
-    Note:
-    this is so far implemented on 1 literal predicates only.
-    TODO:
-    Make it work for multiple literal predicates
-    """
     for x in seriesNodes:
         # For each backchained literal, try to unify it with whatever you can
         xPttn = lo.predPattern(x.arg) # can only unify literals of same pattern
@@ -195,48 +164,58 @@ for i in degree.keys():
         dag.dfsTop(G, i, order, degree, vis)
 # print(order)
 """
-Create a parenting matrix based on order e.g. 1 -> 2 so p[2] = [1,...]
-Then particular cases will be just true/false lists in a graph copy and you can just check if parents are true etc
+Now on to creating hypotheses
+each node is given a number depending on its order from topsort
+order is the topological order of nodes
+orderIndex is a dictionary node : number
+par is a reverse order graph computed on those numbers
+combo is a list of all possible combinations of truth/false assignments to nodes in graph
 """
 
 par = [x[:] for x in [[]]*(len(order))]
+# Compute orderIndex
 orderIndex = dict()
 for i in range(len(order)):
     orderIndex[order[i]] = i
+
+# Compute par
 for node in order:
     for child in G[node]:
-        par[orderIndex[child]].append(orderIndex[node])
-print(par)
-combo = [[]]
+        if child.family not in ['ref', 'num']:
+            par[orderIndex[child]].append(orderIndex[node])
 
+# Compute combo
+combo = [[]]
 for i in order:
     combo = dag.traversal(G, i, combo, par, orderIndex)
-print(combo)
-hypo = [x[:] for x in [[]]*(len(combo)+1)]
+# Delete useless combinations (those which have false observables)
 obsvNodes = [orderIndex[i] for i in order if i.obsv == True]
-
 combo = dag.checkObsv(combo, obsvNodes)
-for c in combo:
-    print("Good Combooo:")
-    for c1 in range(len(c)):
-        print(order[c1], c[c1])
+combo = dag.usefulCombo(combo)
+# Create a list of hypotheses
+hypo = [x[:] for x in [[]]*(len(combo))]
 
-# for j in range(len(combo)):
-#     print("New combo:")
-#     c = combo[j]
-#     falseCombo = False
-#     for o in obsvNodes:
-#         if c[o] == False:
-#             falseCombo = True
-#     if falseCombo:
-#         break
-#     for i in range(len(c)):
-#         if c[i] == True and order[i].family != 'ref':
-#             noTrueParents = False
-#             for p in par[i]:
-#                 if c[p] == True:
-#                     noTrueParents = True
-#                     break
-#             if noTrueParents == False:
-#                 print(order[i])
-#                 hypo[j].append(order[i])
+# for c in combo:
+#     print("Good Combooo:")
+#     for c1 in range(len(c)):
+#         print(order[c1], c[c1])
+
+for j in range(len(combo)):
+    for i in range(len(combo[j])):
+        if combo[j][i] == True:
+            noTrueParents = False
+            for p in par[i]:
+                if combo[j][p] == True and order[p].family != 'uni':
+                    noTrueParents = True
+                    break
+            if noTrueParents == False:
+                hypo[j].append(order[i])
+# Check that hypotheses containing useless variables are deleted
+# Print out all hypotheses
+for i in hypo:
+    print(i)
+
+# Delete useless hypotheses
+#update ref and num
+# Update NumbU
+# From now on work on G.. or incorporate num and ref into the previous representation

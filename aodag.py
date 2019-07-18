@@ -8,16 +8,11 @@ class Node:
     def __init__(self, arg, family, obsv=False, refObsv=False):
         self.family = family
         self.arg = arg
-        self.andor = 'AND' if self.family in ['ref','uni','eq','ax','num'] else 'OR'
+        self.andor = 'AND' if self.family in ['uni','ax'] else 'OR'
         self.num = 0 if self.family == 'num' else None
         self.symbol = arg.symbol if self.family == 'uni' else None
-        self.eq = ()
-        self.eqArgs = 0 #Make this take arguments of lituni
-        self.truth = None
         self.obsv = obsv
         self.refObsv = refObsv
-        self.trueParents = 0
-        self.falseParents = 0
     def __repr__(self):
         return "<" + self.family + "> " + repr(self.arg)
     def __eq__(self, other):
@@ -60,32 +55,19 @@ def dfsTop(graph, node, order, degreeTable, vis):
             vis[i] = True
             dfsTop(graph, i, order, degreeTable, vis)
 
+# Decide if a node will be T or F in the combo
 def analyseNode(node, combo, par, orderIndex):
-
     trueParents = [p for p in par[orderIndex[node]] if combo[p] == True]
     falseParents = [p for p in par[orderIndex[node]] if combo[p] == False]
-    if node.family == 'ax':
-        print("printing parents of ax:")
-        print(node)
-        print(trueParents)
-        print(falseParents)
-    # Node is an observable -> T
-    # if node.obsv == True:
-    #     return (True, False)
-    # Node is a NumbU -> no value, but count true parents
-    if node.family == 'num':
-        node.num = len(trueParents)
-        return (None, None)
-    # Node has no parents -> T/F
-    if node.family == 'ref':
-        return(node.refObsv == True, node.refObsv == False)
     if len(trueParents) == 0 and len(falseParents) == 0:
         return (True, True)
+    # Only True if all parents True
     if node.andor == 'AND':
         if falseParents:
             return (False, True)
         else:
             return (True, False)
+    # True if any parent True; True or False if all parents False
     elif node.andor == 'OR':
         if trueParents:
             return (True, False)
@@ -95,11 +77,12 @@ def analyseNode(node, combo, par, orderIndex):
         print("Error: undefined node")
         return (False, False)
 
+#
 def traversal(graph, node, combo, par, orderIndex):
     appendedCombos = []
     for c in combo:
         (truth, falsity) = analyseNode(node, c, par, orderIndex)
-        print(node, truth, falsity)
+        # print(node, truth, falsity)
         if truth:
             if falsity:
             #Split on c
@@ -125,11 +108,9 @@ def checkObsv(combo, obsvNodes):
         if falseCombo == False:
             goodCombos.append(c)
     return goodCombos
-    # newComboT = [combo + [(node, True)] for combo in preCombo]
-    # newComboF = [combo + [(node, False)] for combo in preCombo]
-    # preCombo = newComboT * truth + newComboF * falsity
-    # for j in range(len(preCombo)):
-    #     for i in graph[node]:
-    #         i.falseParents += falsity*1
-    #         i.trueParents += truth*1
-    # return preCombo
+
+def usefulCombo(combo):
+    for c in combo:
+        for c1 in c:
+            if c1 == True:
+                if 
