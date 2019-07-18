@@ -48,7 +48,7 @@ Axd = dict()
 Numd = dict()
 uniPair = dict()
 uniPredicate = dict()
-f = open("test1.txt", "r")
+f = open("test5.txt", "r")
 obsv = f.readline().strip()
 obsvNodes = obsv.split(', ')
 obsvNodes = [x.split(' ') for x in obsvNodes]
@@ -169,9 +169,8 @@ while(d>0):
                     if uniPair[pair] not in G.keys() or G[uniPair[pair]] != uniPredicate[xPttn]: # if the child of unif
                         dag.addChildren(G, uniPair[pair], [uniPredicate[xPttn]])
     d -= 1
-    print("Graph:" + str(d))
-    for x in G.keys():
-        print(str(x) + " --> " + str(G[x]))
+for x in G.keys():
+    print(str(x) + " --> " + str(G[x]))
 #make a loop which goes over nodes and sttarts degree on those unvisited
 
 # Calculate topological order for nodes
@@ -180,7 +179,7 @@ order = []
 vis = dict()
 degree = dict()
 for i in G.keys():
-    vis[i] = False
+    vis[i] = False if i.family not in ['num', 'ref'] else True
     degree[i] = 0
 for i in G:
     if not vis[i]:
@@ -189,7 +188,7 @@ for i in G:
 # print(degree)
 #Topsort
 for i in G.keys():
-    vis[i] = False
+    vis[i] = False if i.family not in ['num', 'ref'] else True
 for i in degree.keys():
     if degree[i] == 0 and not vis[i]:
         vis[i] = True
@@ -199,32 +198,45 @@ for i in degree.keys():
 Create a parenting matrix based on order e.g. 1 -> 2 so p[2] = [1,...]
 Then particular cases will be just true/false lists in a graph copy and you can just check if parents are true etc
 """
-par = [x[:] for x in [[]]*(len(order)+1)]
+
+par = [x[:] for x in [[]]*(len(order))]
 orderIndex = dict()
 for i in range(len(order)):
     orderIndex[order[i]] = i
 for node in order:
     for child in G[node]:
         par[orderIndex[child]].append(orderIndex[node])
+print(par)
 combo = [[]]
-# for i in range(len(order)):
-#     print(order[i], par[i])
+
 for i in order:
     combo = dag.traversal(G, i, combo, par, orderIndex)
-    # print(dag.analyseNode(i, combo, par, orderIndex))
+print(combo)
 hypo = [x[:] for x in [[]]*(len(combo)+1)]
-for j in range(len(combo)):
-    print("New combo:")
-    c = combo[j]
-    # for k in range(len(c)):
-        # print (order[k], par[k], c[k])
-    for i in range(len(c)):
-        if c[i] == True:
-            noTrueParents = False
-            for p in par[i]:
-                if c[p] == True:
-                    noTrueParents = True
-                    break
-            if noTrueParents == False:
-                print(order[i])
-                hypo[j].append(order[i])
+obsvNodes = [orderIndex[i] for i in order if i.obsv == True]
+
+combo = dag.checkObsv(combo, obsvNodes)
+for c in combo:
+    print("Good Combooo:")
+    for c1 in range(len(c)):
+        print(order[c1], c[c1])
+
+# for j in range(len(combo)):
+#     print("New combo:")
+#     c = combo[j]
+#     falseCombo = False
+#     for o in obsvNodes:
+#         if c[o] == False:
+#             falseCombo = True
+#     if falseCombo:
+#         break
+#     for i in range(len(c)):
+#         if c[i] == True and order[i].family != 'ref':
+#             noTrueParents = False
+#             for p in par[i]:
+#                 if c[p] == True:
+#                     noTrueParents = True
+#                     break
+#             if noTrueParents == False:
+#                 print(order[i])
+#                 hypo[j].append(order[i])

@@ -61,15 +61,21 @@ def dfsTop(graph, node, order, degreeTable, vis):
             dfsTop(graph, i, order, degreeTable, vis)
 
 def analyseNode(node, combo, par, orderIndex):
+
     trueParents = [p for p in par[orderIndex[node]] if combo[p] == True]
     falseParents = [p for p in par[orderIndex[node]] if combo[p] == False]
+    if node.family == 'ax':
+        print("printing parents of ax:")
+        print(node)
+        print(trueParents)
+        print(falseParents)
     # Node is an observable -> T
-    if node.obsv == True:
-        return (True, False)
+    # if node.obsv == True:
+    #     return (True, False)
     # Node is a NumbU -> no value, but count true parents
     if node.family == 'num':
         node.num = len(trueParents)
-        return (node.num > 0, node.num == 0)
+        return (None, None)
     # Node has no parents -> T/F
     if node.family == 'ref':
         return(node.refObsv == True, node.refObsv == False)
@@ -93,6 +99,7 @@ def traversal(graph, node, combo, par, orderIndex):
     appendedCombos = []
     for c in combo:
         (truth, falsity) = analyseNode(node, c, par, orderIndex)
+        print(node, truth, falsity)
         if truth:
             if falsity:
             #Split on c
@@ -107,6 +114,17 @@ def traversal(graph, node, combo, par, orderIndex):
     if truth and falsity:
         combo += appendedCombos
     return combo
+
+def checkObsv(combo, obsvNodes):
+    goodCombos = []
+    for c in combo:
+        falseCombo = False
+        for o in obsvNodes:
+            if c[o] == False:
+                falseCombo = True
+        if falseCombo == False:
+            goodCombos.append(c)
+    return goodCombos
     # newComboT = [combo + [(node, True)] for combo in preCombo]
     # newComboF = [combo + [(node, False)] for combo in preCombo]
     # preCombo = newComboT * truth + newComboF * falsity
