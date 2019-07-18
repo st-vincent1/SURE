@@ -173,6 +173,7 @@ combo is a list of all possible combinations of truth/false assignments to nodes
 """
 
 par = [x[:] for x in [[]]*(len(order))]
+children = [x[:] for x in [[]]*(len(order))]
 # Compute orderIndex
 orderIndex = dict()
 for i in range(len(order)):
@@ -183,6 +184,7 @@ for node in order:
     for child in G[node]:
         if child.family not in ['ref', 'num']:
             par[orderIndex[child]].append(orderIndex[node])
+            children[orderIndex[node]].append(orderIndex[child])
 
 # Compute combo
 combo = [[]]
@@ -191,7 +193,7 @@ for i in order:
 # Delete useless combinations (those which have false observables)
 obsvNodes = [orderIndex[i] for i in order if i.obsv == True]
 combo = dag.checkObsv(combo, obsvNodes)
-combo = dag.usefulCombo(combo)
+combo = dag.usefulCombo(combo, children)
 # Create a list of hypotheses
 hypo = [x[:] for x in [[]]*(len(combo))]
 

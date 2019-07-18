@@ -109,8 +109,18 @@ def checkObsv(combo, obsvNodes):
             goodCombos.append(c)
     return goodCombos
 
-def usefulCombo(combo):
+def usefulCombo(combo, children):
+    # Combo contains a list of lists of booleans
+    # goodCombos will be only those combos which are useful
+    usefulCombos = []
     for c in combo:
-        for c1 in c:
-            if c1 == True:
-                if 
+        allChildrenTrue = True
+        # For each element of combo, if its true, check if all its children are true
+        # If at least one is false in the whole list, delete this combo. If all true, keep
+        for c1 in range(len(c)):
+            if c[c1] == True:
+                for child in children[c1]:
+                    allChildrenTrue *= c[child]
+        if allChildrenTrue:
+            usefulCombos.append(c)
+    return usefulCombos
