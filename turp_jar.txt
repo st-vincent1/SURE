@@ -1,0 +1,4 @@
+turpenine y, nn y x, jar x
+liquid y, etc1 y. turpenine y
+contain e1 x y. nn y x
+liquid y, contain e1 x y, function e1 x, etc2 e1 x y. jar x

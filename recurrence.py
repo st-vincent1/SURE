@@ -81,9 +81,6 @@ for line in f:
 """
 Assume KB filtered
 """
-# Refd[o] = True <=> o is an observable; do I need this tho
-
-
 # # Convert KB to a KB of Axioms
 d = 2
 while(d>0):
@@ -198,20 +195,36 @@ for i in degree.keys():
         vis[i] = True
         dag.dfsTop(G, i, order, degree, vis)
 # print(order)
-
-par = [dict()]
-for i in G.keys():
-    # vis[i] = False
-    par[i] = [0,0]
-combos = [[]]
+"""
+Create a parenting matrix based on order e.g. 1 -> 2 so p[2] = [1,...]
+Then particular cases will be just true/false lists in a graph copy and you can just check if parents are true etc
+"""
+par = [x[:] for x in [[]]*(len(order)+1)]
+orderIndex = dict()
+for i in range(len(order)):
+    orderIndex[order[i]] = i
+for node in order:
+    for child in G[node]:
+        par[orderIndex[child]].append(orderIndex[node])
+combo = [[]]
+# for i in range(len(order)):
+#     print(order[i], par[i])
 for i in order:
-    print(combos)
-    combos = dag.traversal(G, i, combos, par)
-print(par)
-#Combos contains all possible models
-for i in combos:
-    print("@@@@@@@@@@@@@@@@@@@@@@@@ ... NEXT HYPOTHESIS:")
-    for j in i:
-        print(j)
-#make more examples
-print(obsvNodes)
+    combo = dag.traversal(G, i, combo, par, orderIndex)
+    # print(dag.analyseNode(i, combo, par, orderIndex))
+hypo = [x[:] for x in [[]]*(len(combo)+1)]
+for j in range(len(combo)):
+    print("New combo:")
+    c = combo[j]
+    # for k in range(len(c)):
+        # print (order[k], par[k], c[k])
+    for i in range(len(c)):
+        if c[i] == True:
+            noTrueParents = False
+            for p in par[i]:
+                if c[p] == True:
+                    noTrueParents = True
+                    break
+            if noTrueParents == False:
+                print(order[i])
+                hypo[j].append(order[i])

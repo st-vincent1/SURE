@@ -1,0 +1,3 @@
+p x, a x
+s y. p x, a x
+p z. a x
