@@ -59,7 +59,7 @@ def dfsTop(graph, node, order, degreeTable, vis):
 def analyseNode(node, combo, par, orderIndex):
     trueParents = [p for p in par[orderIndex[node]] if combo[p] == True]
     falseParents = [p for p in par[orderIndex[node]] if combo[p] == False]
-    if len(trueParents) == 0 and len(falseParents) == 0:
+    if not trueParents and not falseParents:
         return (True, True)
     # Only True if all parents True
     if node.andor == 'AND':
@@ -77,7 +77,6 @@ def analyseNode(node, combo, par, orderIndex):
         print("Error: undefined node")
         return (False, False)
 
-#
 def traversal(graph, node, combo, par, orderIndex):
     appendedCombos = []
     for c in combo:
@@ -101,11 +100,10 @@ def traversal(graph, node, combo, par, orderIndex):
 def checkObsv(combo, obsvNodes):
     goodCombos = []
     for c in combo:
-        falseCombo = False
+        trueCombo = True
         for o in obsvNodes:
-            if c[o] == False:
-                falseCombo = True
-        if falseCombo == False:
+            trueCombo *= c[o]
+        if trueCombo == True:
             goodCombos.append(c)
     return goodCombos
 
@@ -118,7 +116,7 @@ def usefulCombo(combo, children):
         # For each element of combo, if its true, check if all its children are true
         # If at least one is false in the whole list, delete this combo. If all true, keep
         for c1 in range(len(c)):
-            if c[c1] == True:
+            if c[c1]:
                 for child in children[c1]:
                     allChildrenTrue *= c[child]
         if allChildrenTrue:

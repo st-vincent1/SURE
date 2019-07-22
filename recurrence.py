@@ -3,6 +3,7 @@ import aodag as dag
 import itertools
 import pprint as pp
 import copy
+
 """
 Satisfied if all consequents in rule are among nodes
 """
@@ -18,14 +19,11 @@ def satisfied(rule, nodes):
 Pattern matching
 """
 def backchain(rollingNodes, rule):
-    print(rule)
-    print(rollingNodes)
     usedNodes = []
     bP = []
     if satisfied(rule, rollingNodes):
         usedNodes += [node for node in rollingNodes if node.arg in rule.conse]
         bP += rule.ante
-    print(usedNodes)
     return (bP, usedNodes)
 
 def indexUpdate(index, rollingNodes):
@@ -36,10 +34,16 @@ def indexUpdate(index, rollingNodes):
             index[lo.predPattern(o.arg)].append(o)
     return index
 
+def parseLit(i):
+    symbol = i[0]
+    args = i[1][:-1].split(',')
+    lit = lo.Form(symbol, args)
+    return lit
+
 def parse(varList):
-    args = [varList[i].split(' ') for i in range(len(varList))]
-    args = [lo.Form(args[i][0], args[i][1:]) for i in range(len(args))]
-    return args
+    varList = [varList[i].split('(') for i in range(len(varList))]
+    varList = [parseLit(i) for i in varList]
+    return varList
 
 ################### MAIN
 Litd = dict()
@@ -48,40 +52,43 @@ Axd = dict()
 Numd = dict()
 uniPair = dict()
 uniPredicate = dict()
-f = open("test1.txt", "r")
+KB = []
+
+f = open("test1a", "r")
 obsv = f.readline().strip()
-obsvNodes = obsv.split(', ')
-obsvNodes = [x.split(' ') for x in obsvNodes]
+obsvNodes = obsv.split(' | ')
+obsvNodes = [x.split('(') for x in obsvNodes]
+print(obsvNodes)
 # convert obsv to Nodes
 rollingNodes = []
 for i in obsvNodes:
-    a = lo.Form(i[0], i[1:])
+    a = parseLit(i)
     aNode = dag.Node(a, 'lit', True)
     Litd[a] = aNode
     rollingNodes.append(aNode)
 
 obsvNodes = copy.deepcopy(rollingNodes)
-KB = []
 G = dag.initGraph(rollingNodes)
 # index stores lists of nodes that satisfy a certain predicate pattern
 index = dict()
 index = indexUpdate(index, rollingNodes)
 
 for line in f:
-    implication = line.strip().split('. ')
-    antecedents = implication[0].split(', ')
-    consequents = implication[1].split(', ')
+    implication = line.strip().split(' -> ')
+    antecedents = implication[0].split(' and ')
+    consequents = implication[1].split(' and ')
     antecedentsArgs, consequentsArgs = parse(antecedents), parse(consequents)
     KB.append(lo.Rule(len(KB)+1, antecedentsArgs, consequentsArgs))
-
-# Erase useless rules from KB
-# KB filter consequents in rolling nodes
-# KB = [rule if any i in rule.conse in x.arg for x in rollingNodes for rule in KB]
 
 """
 Assume KB filtered
 """
 # Convert KB to a KB of Axioms
+# This goes in the work in progress field
+print("Knowledge Base:")
+for i in range(1, len(KB)+1):
+    print("Rule #" + str(i) + ": " + str(KB[i-1]))
+
 d = 5
 while(d>0):
     seriesNodes = []
@@ -138,9 +145,11 @@ while(d>0):
                     if uniPair[pair] not in G.keys() or G[uniPair[pair]] != uniPredicate[xPttn]: # if the child of unif
                         dag.addChildren(G, uniPair[pair], [uniPredicate[xPttn]])
     d -= 1
+
+# Work in progress field
+print("\nGraph:")
 for x in G.keys():
     print(str(x) + " --> " + str(G[x]))
-#make a loop which goes over nodes and sttarts degree on those unvisited
 
 # Calculate topological order for nodes
 # Degree is a list of topologically sorted nodes
@@ -154,7 +163,7 @@ for i in G:
     if not vis[i]:
         vis[i] = True
         degree = dag.dfsDegree(G, i, degree, vis)
-# print(degree)
+
 #Topsort
 for i in G.keys():
     vis[i] = False if i.family not in ['num', 'ref'] else True
@@ -162,7 +171,7 @@ for i in degree.keys():
     if degree[i] == 0 and not vis[i]:
         vis[i] = True
         dag.dfsTop(G, i, order, degree, vis)
-# print(order)
+
 """
 Now on to creating hypotheses
 each node is given a number depending on its order from topsort
@@ -197,11 +206,6 @@ combo = dag.usefulCombo(combo, children)
 # Create a list of hypotheses
 hypo = [x[:] for x in [[]]*(len(combo))]
 
-# for c in combo:
-#     print("Good Combooo:")
-#     for c1 in range(len(c)):
-#         print(order[c1], c[c1])
-
 for j in range(len(combo)):
     for i in range(len(combo[j])):
         if combo[j][i] == True:
@@ -212,12 +216,13 @@ for j in range(len(combo)):
                     break
             if noTrueParents == False:
                 hypo[j].append(order[i])
-# Check that hypotheses containing useless variables are deleted
 # Print out all hypotheses
-for i in hypo:
-    print(i)
+# Output field
+for i in range(1, len(hypo)+1):
+    print("\nHypothesis #" + str(i) + ":")
+    for node in hypo[i-1]:
+        print(node.arg)
 
-# Delete useless hypotheses
 #update ref and num
 # Update NumbU
 # From now on work on G.. or incorporate num and ref into the previous representation
