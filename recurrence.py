@@ -33,7 +33,11 @@ def indexUpdate(index, rollingNodes):
         else:
             index[lo.predPattern(o.arg)].append(o)
     return index
-
+"""
+Main function;
+Continually apply backchaining and unification until convergence/reached max depth
+Update the graph as you go along
+"""
 def backchainAndUnify(KB, rollingNodes, G, Litd, index, obsvNodes, d=3):
     Refd = dict()
     Axd = dict()
@@ -96,6 +100,11 @@ def backchainAndUnify(KB, rollingNodes, G, Litd, index, obsvNodes, d=3):
         d -= 1
     return Refd, Axd, Numd, uniPair, uniPredicate
 
+"""
+Input parser
+Takes input from observations' and rules' boxes and parses them
+into observations and KB rules
+"""
 def parseInput(obsvNodes, f):
     KB = []
     index = dict()
@@ -117,7 +126,7 @@ def parseInput(obsvNodes, f):
     index = indexUpdate(index, rollingNodes)
 
     for line in f:
-        implication = line.strip().split(' -> ')
+        implication = line.strip().split(' -- ')
         antecedents = implication[0].split(' and ')
         consequents = implication[1].split(' and ')
         antecedentsArgs, consequentsArgs = parse(antecedents), parse(consequents)
@@ -134,6 +143,7 @@ def parse(varList):
     varList = [varList[i].split('(') for i in range(len(varList))]
     varList = [parseLit(i) for i in varList]
     return varList
+
 
 def topSort(G):
     # Degree is a list of topologically sorted nodes
@@ -156,6 +166,9 @@ def topSort(G):
             dag.dfsTop(G, i, order, degree, vis)
     return order
 
+"""
+Compute parents for nodes and compile into a list
+"""
 def computePar(order, G):
     par = [x[:] for x in [[]]*(len(order))]
     children = [x[:] for x in [[]]*(len(order))]
@@ -171,6 +184,9 @@ def computePar(order, G):
                 children[orderIndex[node]].append(orderIndex[child])
     return par, children, orderIndex
 
+"""
+Compute all possible combinations for T/F value assignments in graph
+"""
 def computeCombo(order, par, children, orderIndex, G):
     combo = [[]]
     for i in order:
@@ -181,6 +197,9 @@ def computeCombo(order, par, children, orderIndex, G):
     combo = dag.usefulCombo(combo, children)
     return combo
 
+"""
+Compute all valid hypotheses
+"""
 def computeHyp(combo, order, par):
     hyp = [x[:] for x in [[]]*(len(combo))]
     for j in range(len(combo)):
@@ -195,11 +214,20 @@ def computeHyp(combo, order, par):
                     hyp[j].append(order[i])
     return hyp
 
+"""
+Print functions
+invoked to form strings containing data from algorithm proceedings/output and put in boxes in the application
+"""
 def printHyp(hyp):
     strg = ""
     for i in range(1, len(hyp)+1):
         strg = strg + f'Hypothesis #{i}:\n'
-        args = [str(node.arg) for node in hyp[i-1]]
+        # for node in hyp[i-1]:
+        #     print(node)
+            # if node.family == 'eq':
+            #     strr = str(node.arg[0]) + u'\21a6' + str(node.arg[1])
+            #     print(strr)
+        args = [' == '.join(node.arg) if node.family == 'eq' else str(node.arg) for node in hyp[i-1]]
         strg = strg + u' \u2227 '.join(args) + "\n"
     return strg
 
@@ -208,6 +236,7 @@ def printGraph(G):
     for x in G.keys():
         strg = strg + str(x) + " --> " + str(G[x])
         strg += "\n"
+    strg += "Note that <num> and <eq> nodes serve no purpose in establishing hypotheses; they're there for other uses of the system. Thus they're not accounted for from now on."
     return strg
 
 def printKB(KB):
@@ -216,7 +245,16 @@ def printKB(KB):
         strg = strg + str(KB[i-1]) + "\n"
     return strg
 
-################### MAIN
+def printOrder(orderIndex):
+    strg = "\n\nTopological order of nodes:\n"
+    for i in orderIndex.keys():
+        strg = strg + f'{str(orderIndex[i]+1)}: {repr(i)}\n'
+    return strg
+
+"""
+Function that can be ran independently of the app to work with it in commandline
+Running python recurrence.py will invoke this
+"""
 def abduce(input=None, d=3):
     d = 5
     f = open("test1a", "r")

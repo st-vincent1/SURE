@@ -2,7 +2,19 @@ import logic as lo
 import copy
 import pprint as pp
 """
-ADD CODE COMMENTING THE CLASS
+AODAG module
+
+"""
+"""
+class Node
+Implements all possible types of nodes in AODAG
+args:
+arg - arguments of node
+family - type of node
+obsv - is this node an observed literal?
+num - number of true unifications if node is a num node
+andor - AND/OR value of node
+symbol - symbol of the unified literal if node is a uni node
 """
 class Node:
     def __init__(self, arg, family, obsv=False, refObsv=False):
@@ -22,6 +34,9 @@ class Node:
         return hash((self.arg,self.family))
 
 ######### METHODS #########
+"""
+Initiate graph with empty lists for children
+"""
 def initGraph(nodes):
     G = dict()
     for node in nodes:
@@ -29,6 +44,9 @@ def initGraph(nodes):
         G[node] = []
     return G
 
+"""
+Add children to node in graph
+"""
 def addChildren(graph, node, children):
     if node not in graph.keys():
         graph[node] = []
@@ -36,6 +54,10 @@ def addChildren(graph, node, children):
         if c not in graph[node]:
             graph[node].append(c)
 
+"""
+Compute the degrees of nodes in graph
+Degree = how many parents do I have?
+"""
 def dfsDegree(graph, node, degreeTable, vis):
     if node.family == 'ref':
         print(node)
@@ -47,6 +69,11 @@ def dfsDegree(graph, node, degreeTable, vis):
             dfsDegree(graph, i, degreeTable, vis)
     return degreeTable
 
+"""
+Establish the topological order of nodes
+Topological order = order of visiting in DAG; makes sure that a node is only visited
+after all its parents have been visited
+"""
 def dfsTop(graph, node, order, degreeTable, vis):
     order.append(node)
     for i in graph[node]:
@@ -55,7 +82,10 @@ def dfsTop(graph, node, order, degreeTable, vis):
             vis[i] = True
             dfsTop(graph, i, order, degreeTable, vis)
 
-# Decide if a node will be T or F in the combo
+"""
+Analyse node and decide whether it is going to be T, F or both in the combination
+Both = need to split
+"""
 def analyseNode(node, combo, par, orderIndex):
     trueParents = [p for p in par[orderIndex[node]] if combo[p] == True]
     falseParents = [p for p in par[orderIndex[node]] if combo[p] == False]
@@ -77,6 +107,9 @@ def analyseNode(node, combo, par, orderIndex):
         print("Error: undefined node")
         return (False, False)
 
+"""
+Main function; graph traversal builds all possible combinations of T/F assignments to nodes
+"""
 def traversal(graph, node, combo, par, orderIndex):
     appendedCombos = []
     for c in combo:
@@ -97,6 +130,9 @@ def traversal(graph, node, combo, par, orderIndex):
         combo += appendedCombos
     return combo
 
+"""
+Filter combinations to only contain those where all observables are true
+"""
 def checkObsv(combo, obsvNodes):
     goodCombos = []
     for c in combo:
@@ -107,6 +143,11 @@ def checkObsv(combo, obsvNodes):
             goodCombos.append(c)
     return goodCombos
 
+"""
+Filter combinations to only contain useful combinations
+Useful = all children are true
+I have a false child -> I was not used for explanation -> I am not necessary to assume
+"""
 def usefulCombo(combo, children):
     # Combo contains a list of lists of booleans
     # goodCombos will be only those combos which are useful

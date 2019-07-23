@@ -32,6 +32,7 @@ def abduce(obs, rul, con, hyps):
     """
     # Compute par, children and orderIndex
     par, children, orderIndex = r.computePar(order, G)
+    con.insert(tk.END, r.printOrder(orderIndex))
     # Compute combo
     combo = r.computeCombo(order, par, children, orderIndex, G)
     # Create a list of hypotheses
