@@ -6,8 +6,8 @@ rules = []
 
 def abduce(obs, rul, con, hyps):
     d = 5
-    obsv = obs.get("1.0", "end-1c").split("\n")[:-1]
-    rules = rul.get("1.0", "end-1c").split("\n")[:-1]
+    obsv = obs.get("1.0", "end-1c").strip().split("\n")
+    rules = rul.get("1.0", "end-1c").strip().split("\n")
     print(obsv)
     print(rules)
     KB, Litd, rollingNodes, G, index, obsvNodes = r.parseInput(obsv, rules)
@@ -41,6 +41,7 @@ def abduce(obs, rul, con, hyps):
     return
 
 def fill(stro, strr, obs, rul):
+    inReset(obs, rul)
     o = open(stro, "r")
     r = open(strr, "r")
     for line in o:
@@ -48,44 +49,46 @@ def fill(stro, strr, obs, rul):
     for line in r:
         rul.insert(tk.END, line)
     return
-def makeform(root, fields):
-    entries = {}
-    for field in fields:
-        print(field)
-        row = tk.Frame(root)
-        lab = tk.Label(row, width=22, text=field+": ", anchor='w')
-        ent = tk.Entry(row)
-        ent.insert(0, "0")
-        row.pack(side=tk.TOP,
-                 fill=tk.X,
-                 padx=5,
-                 pady=5)
-        lab.pack(side=tk.LEFT)
-        ent.pack(side=tk.RIGHT,
-                 expand=tk.YES,
-                 fill=tk.X)
-        entries[field] = ent
-    return entries
 
 def makeLeft(root, con, hyp):
     # Obsv
     lab = tk.Label(root,  font = ("Times", 16), text="Observables: ", anchor='w')
+    ins = tk.Label(root,
+                   font = ("Times", 10),
+                   text="One observable per line, lowercase for variables, capital case for constants, \nuse numbers as needed, e.g. know(Jon1, nothing)",
+                   anchor='w',
+                   justify = tk.LEFT)
     obs = tk.Text(root, width = 40, height = 10, bg = "white")
     #insert
     lab.pack(side = tk.TOP,
              fill = tk.BOTH,
              padx = 10)
+    ins.pack(side = tk.TOP,
+             fill = tk.BOTH,
+             padx = 10,
+             pady = 3)
     obs.pack(side = tk.TOP,
              fill = tk.X,
              padx = 5,
              pady = 5)
     #Rules
     lab = tk.Label(root, font = ("Times", 16), text="Rules: ", anchor='w')
+    ins = tk.Label(root,
+                   font = ("Times", 10),
+                   text=u'One rule per line, syntax as above, use \"and\" for conjunction, \"->\" for implication.'
+                   + '\nThe only allowed syntax is clause -> clause.'
+                   + '\nExample: p(x) and k(y) -> p(y) translates as: p(x) \u2227 k(y) \u2283 p(y)',
+                   anchor='w',
+                   justify = tk.LEFT)
     rul = tk.Text(root, width = 40, height = 10, bg = "white")
     run = tk.Button(root, width = 10, height = 2, text = "Run abduction!", command = lambda: abduce(obs, rul, con, hyp))
     lab.pack(side = tk.TOP,
              fill = tk.BOTH,
              padx = 10)
+    ins.pack(side = tk.TOP,
+             fill = tk.BOTH,
+             padx = 10,
+             pady = 3)
     rul.pack(side = tk.TOP,
              fill = tk.X,
              padx = 5,
@@ -103,11 +106,11 @@ def makeLeft(root, con, hyp):
              fill = tk.X,
              padx = 5,
              pady = 5)
-    return
+    return obs, rul
 
 def makeMiddle(root):
-    lab = tk.Label(root, font = ("Times", 16), text="Works: ", anchor='w')
-    inp = tk.Text(root, width = 60, height = 30, bg = "light gray")
+    lab = tk.Label(root, font = ("Times", 16), text="Chalkboard: ", anchor='w')
+    inp = tk.Text(root, width = 60, height = 30, bg = "green", fg = "white")
     lab.pack(side = tk.TOP,
             fill = tk.BOTH,
             padx = 10)
@@ -131,6 +134,20 @@ def makeRight(root):
              padx=10,
              pady=5)
     return out
+
+def inReset(obs, rul):
+    obs.delete("1.0", tk.END)
+    rul.delete("1.0", tk.END)
+
+def outReset(hyps, console):
+    console.delete("1.0", tk.END)
+    hyps.delete("1.0", tk.END)
+
+def reset(obs, rul, hyps, console):
+    inReset(obs, rul)
+    outReset(hyps, console)
+    return
+
 if __name__ == '__main__':
     root = tk.Tk()
 
@@ -138,9 +155,6 @@ if __name__ == '__main__':
     tk.Label(titleFrame, font = ("Times", 24), text = "Abduction engine", anchor = 'n').pack(side = tk.LEFT, fill = tk.X)
     titleFrame.grid(column = 0, row = 0, columnspan = 3)
 
-    # b2 = tk.Button(root, text='Monthly Payment',
-    #        command=(lambda e=ents: monthly_payment(e)))
-    # b2.grid(column = 0, row = 1, padx=5, pady=5)
     middleFrame = tk.Frame(root)
     console = makeMiddle(middleFrame)
 
@@ -148,8 +162,12 @@ if __name__ == '__main__':
     hyps = makeRight(rightFrame)
 
     leftFrame = tk.Frame(root)
-    makeLeft(leftFrame, console, hyps)
+    obs, rul = makeLeft(leftFrame, console, hyps)
 
+    resetBtn = tk.Button(rightFrame, text='Reset', command = lambda: reset(obs, rul, hyps, console))
+    resetBtn.pack(side=tk.RIGHT,
+                  padx=3,
+                  pady=5)
     middleFrame.grid(column = 1, row = 1)
     rightFrame.grid(column = 2, row = 1)
     leftFrame.grid(column = 0, row = 1)

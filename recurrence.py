@@ -102,7 +102,6 @@ def parseInput(obsvNodes, f):
     rollingNodes = []
     G = dict()
     Litd = dict()
-    print(obsvNodes)
     obsvNodes = [x.split('(') for x in obsvNodes]
     # convert obsv to Nodes
 
@@ -127,10 +126,9 @@ def parseInput(obsvNodes, f):
 
 def parseLit(i):
     symbol = i[0]
-    print(i)
     args = i[1][:-1].split(',')
-    lit = lo.Form(symbol, args)
-    return lit
+    args = [arg.strip() for arg in args]
+    return lo.Form(symbol, args)
 
 def parse(varList):
     varList = [varList[i].split('(') for i in range(len(varList))]
@@ -200,11 +198,9 @@ def computeHyp(combo, order, par):
 def printHyp(hyp):
     strg = ""
     for i in range(1, len(hyp)+1):
-        strg = strg + "Hypothesis #" + str(i) + ":\n"
-        for node in hyp[i-1]:
-            strg = strg + str(node.arg)
-            strg += "\n"
-        strg += "\n"
+        strg = strg + f'Hypothesis #{i}:\n'
+        args = [str(node.arg) for node in hyp[i-1]]
+        strg = strg + u' \u2227 '.join(args) + "\n"
     return strg
 
 def printGraph(G):

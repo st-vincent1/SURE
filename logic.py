@@ -59,7 +59,9 @@ class Rule:
         self.ante = ante # List of args, antecedents
         self.conse = conse # Term, consequent
     def __repr__(self):
-        return "Rule (" + str(self.no) + "): " + repr(self.ante) + " => " + repr(self.conse)
+        reprAnte = [repr(d) for d in self.ante]
+        reprConse = [repr(d) for d in self.conse]
+        return "Rule (" + str(self.no) + "): " + u' \u2227 '.join(reprAnte) + u' \u2283 ' + u' \u2227 '.join(reprConse)
 
 class customForm:
     def __init__(self, weight, ant, consequents):
