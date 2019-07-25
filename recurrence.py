@@ -3,6 +3,7 @@ import aodag as dag
 import itertools
 import pprint as pp
 import copy
+from operator import itemgetter
 
 """
 Satisfied if all consequents in rule are among nodes
@@ -44,8 +45,11 @@ def backchainAndUnify(KB, rollingNodes, G, Litd, index, obsvNodes, d=3):
     Numd = dict()
     uniPair = dict()
     uniPredicate = dict()
+    seriesNodes = copy.deepcopy(rollingNodes)
+
+    # Ghost unification
+
     while(d>0):
-        seriesNodes = []
         # Backchaining
         for axiom in KB:
             if axiom.no not in Axd.keys():
@@ -71,9 +75,12 @@ def backchainAndUnify(KB, rollingNodes, G, Litd, index, obsvNodes, d=3):
             #Putting Refs in the graph
             for a in axiom.conse:
                 if a not in Refd.keys():
-                    Refd[a] = dag.Node(a, 'ref', False, True if Litd[a] in obsvNodes else False)
-                dag.addChildren(G, Refd[a], [Axd[axiom.no]])
-        rollingNodes += seriesNodes
+                    if a in Litd.keys():
+                        Refd[a] = dag.Node(a, 'ref', False, True if Litd[a] in obsvNodes else False)
+                if a in Refd.keys():
+                    dag.addChildren(G, Refd[a], [Axd[axiom.no]])
+        rollingNodes.extend(seriesNodes)
+        rollingNodes = list(dict.fromkeys(rollingNodes))
 
         # Unification
         for x in seriesNodes:
@@ -97,6 +104,7 @@ def backchainAndUnify(KB, rollingNodes, G, Litd, index, obsvNodes, d=3):
                                 dag.addChildren(G, uniPredicate[xPttn], [Numd[G[y][0].arg]])
                         if uniPair[pair] not in G.keys() or G[uniPair[pair]] != uniPredicate[xPttn]: # if the child of unif
                             dag.addChildren(G, uniPair[pair], [uniPredicate[xPttn]])
+        seriesNodes = []
         d -= 1
     return Refd, Axd, Numd, uniPair, uniPredicate
 
@@ -200,9 +208,18 @@ def computeCombo(order, par, children, orderIndex, G):
 """
 Compute all valid hypotheses
 """
-def computeHyp(combo, order, par):
+def computeHyp(combo, order, orderIndex, par, Refd, G):
+    score = [0]*len(combo)
     hyp = [x[:] for x in [[]]*(len(combo))]
     for j in range(len(combo)):
+        c = combo[j]
+        refParents = [G[x] for x in Refd.values()]
+        refParents = list(set([item for sublist in refParents for item in sublist]))
+        trueParents = [x for x in order if x.family == 'ax' and c[orderIndex[x]]]
+        refCount = len(list(set(refParents) & set(trueParents)))
+        uniCount = len([x for x in order if x.family == 'uni' and c[orderIndex[x]]])
+        score[j] = refCount + uniCount
+
         for i in range(len(combo[j])):
             if combo[j][i] == True:
                 noTrueParents = False
@@ -212,6 +229,10 @@ def computeHyp(combo, order, par):
                         break
                 if noTrueParents == False:
                     hyp[j].append(order[i])
+    x = sorted(list(zip(score, range(len(score)))), reverse = True)
+    print(x)
+    hyps = [hyp[j] for i,j in x]
+    print(hyps)
     return hyp
 
 """
@@ -221,7 +242,8 @@ invoked to form strings containing data from algorithm proceedings/output and pu
 def printHyp(hyp):
     strg = ""
     for i in range(1, len(hyp)+1):
-        strg = strg + f'Hypothesis #{i}:\n'
+        mph = "" if i>1 else "(most probable hypothesis)"
+        strg = strg + f'Hypothesis #{i} {mph}:\n'
         # for node in hyp[i-1]:
         #     print(node)
             # if node.family == 'eq':

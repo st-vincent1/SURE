@@ -1,0 +1,7 @@
+held(a,b) -- nn(a,b)
+task(c,d) -- nn(c,d)
+of(e,f) -- nn(e,f)
+nn(a1,b1) -- nn1(a1,b1)
+nn(a2,b2) -- nn2(a2,b2)
+nn(a3,b3) -- nn3(a3,b3)
+nn(a4,b4) -- nn4(a4,b4)

@@ -3,11 +3,11 @@ import re
 import copy
 import itertools as it
 """
-ASSUMPTION:
-- variables are written with ?
-- constants are written with numbers at the end.
-- there is no 'variable' or 'constant' type.
- These are all strings and there is a method which returns what type of thing a string is.
+Atomic formula
+in p(x,y)
+p is the symbol
+x,y are args
+2 is arity
 """
 class Form:
     def __init__(self, symbol, args):
@@ -23,7 +23,6 @@ class Form:
             return self.symbol == other.symbol and self.args == other.args
     def __hash__(self):
         return hash((self.symbol,self.arity))
-
 
 """
  Conjunctive Normal Form:
@@ -44,7 +43,6 @@ class CNF:
     def variables(self):
         return [x for term in self.terms for x in term.args]
 
-
 class HornClause:
     def __init__(self, weight, csq, antecedents):
         self.weight = weight
@@ -53,6 +51,12 @@ class HornClause:
     def __repr__(self):
         return str(self.weight) + " " + (repr(self.antecedents) + " => " + repr(self.csq))
 
+"""
+Abduction rule
+x and y -- z
+means that (x and y) is a subset of z
+i.e. all things that satisfy (x and y) also satisfy z
+"""
 class Rule:
     def __init__(self, no, ante, conse):
         self.no = no

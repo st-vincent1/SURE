@@ -18,6 +18,7 @@ def abduce(obs, rul, con, hyps):
     # This goes in the work in progress field
     con.insert(tk.END, r.printKB(KB))
     Refd, Axd, Numd, uniPair, uniPredicate = r.backchainAndUnify(KB, rollingNodes, G, Litd, index, obsvNodes, d)
+    print(Refd)
     # Work in progress field
     con.insert(tk.END, r.printGraph(G))
     # Calculate topological order for nodes
@@ -36,7 +37,7 @@ def abduce(obs, rul, con, hyps):
     # Compute combo
     combo = r.computeCombo(order, par, children, orderIndex, G)
     # Create a list of hypotheses
-    hyp = r.computeHyp(combo, order, par)
+    hyp = r.computeHyp(combo, order, orderIndex, par, Refd, G)
     # Print out all hypotheses
     hyps.insert(tk.END, r.printHyp(hyp))
     return
@@ -121,7 +122,7 @@ def makeMiddle(root):
              pady = 5)
     return inp
 def makeRight(root):
-    lab = tk.Label(root, font = ("Times", 16), text="Hypotheses: ", anchor='w')
+    lab = tk.Label(root, font = ("Times", 16), text="Hypotheses (ranked by reliability): ", anchor='w')
     out = tk.Text(root, width = 60, height = 28, bg = "white")
     btn = tk.Button(root, text='Quit', command=root.quit)
     lab.pack(side = tk.TOP,
